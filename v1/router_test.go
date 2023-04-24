@@ -99,6 +99,43 @@ func Test_router_addRoute(t *testing.T) {
 	assert.True(t, err == nil, err)
 	// // 因为有 function 字段，所以 Equal 无法比较。
 	// assert.Equal(t, wantRouter, r)
+
+	// 非法用例
+	r = newRouter()
+
+	// 空字符串
+	assert.PanicsWithValue(t, "web: 路由是空字符串", func() {
+		r.addRoute(http.MethodGet, "", mockHandler)
+	})
+
+	// 前导没有 /
+	assert.PanicsWithValue(t, "web: 路由必须以 / 开头", func() {
+		r.addRoute(http.MethodGet, "a/b/c", mockHandler)
+	})
+
+	// 后缀有 /
+	assert.PanicsWithValue(t, "web: 路由不能以 / 结尾", func() {
+		r.addRoute(http.MethodGet, "/a/b/c/", mockHandler)
+	})
+
+	// 根节点重复注册
+	r.addRoute(http.MethodGet, "/", mockHandler)
+	assert.PanicsWithValue(t, "web: 路由冲突[/]", func() {
+		r.addRoute(http.MethodGet, "/", mockHandler)
+	})
+	// 普通节点重复注册
+	r.addRoute(http.MethodGet, "/a/b/c", mockHandler)
+	assert.PanicsWithValue(t, "web: 路由冲突[/a/b/c]", func() {
+		r.addRoute(http.MethodGet, "/a/b/c", mockHandler)
+	})
+
+	// 多个 /
+	assert.PanicsWithValue(t, "web: 非法路由。不允许使用 //a/b, /a//b 之类的路由, [/a//b]", func() {
+		r.addRoute(http.MethodGet, "/a//b", mockHandler)
+	})
+	assert.PanicsWithValue(t, "web: 非法路由。不允许使用 //a/b, /a//b 之类的路由, [//a/b]", func() {
+		r.addRoute(http.MethodGet, "//a/b", mockHandler)
+	})
 }
 
 func (want router) equal(get router) error {
