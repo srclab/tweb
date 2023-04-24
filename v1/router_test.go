@@ -181,3 +181,111 @@ func (want *node) equal(get *node, id string) error {
 
 	return nil
 }
+
+func Test_router_findRoute(t *testing.T) {
+	testRoutes := []struct {
+		method string
+		path   string
+	}{
+		{
+			method: http.MethodGet,
+			path:   "/",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/user",
+		},
+		{
+			method: http.MethodPost,
+			path:   "/order/create",
+		},
+	}
+
+	mockHandler := func(ctx *Context) {}
+
+	testCases := []struct {
+		name     string
+		method   string
+		path     string
+		found    bool
+		wantNode *node
+	}{
+		{
+			name:   "method not found",
+			method: http.MethodHead,
+		},
+		{
+			name:   "path not found",
+			method: http.MethodGet,
+			path:   "/abc",
+		},
+		{
+			name:   "root",
+			method: http.MethodGet,
+			path:   "/",
+			found:  true,
+			wantNode: &node{
+				path: "/",
+				children: map[string]*node{
+					"user": {
+						path:    "user",
+						handler: mockHandler,
+					},
+				},
+				handler: mockHandler,
+			},
+		},
+		{
+			name:   "user",
+			method: http.MethodGet,
+			path:   "/user",
+			found:  true,
+			wantNode: &node{
+				path:    "user",
+				handler: mockHandler,
+			},
+		},
+		{
+			name:   "no handler",
+			method: http.MethodPost,
+			path:   "/order",
+			found:  true,
+			wantNode: &node{
+				path: "order",
+				children: map[string]*node{
+					"create": {
+						path:    "create",
+						handler: mockHandler,
+					},
+				},
+			},
+		},
+		{
+			name:   "two layer",
+			method: http.MethodPost,
+			path:   "/order/create",
+			found:  true,
+			wantNode: &node{
+				path:    "create",
+				handler: mockHandler,
+			},
+		},
+	}
+
+	r := newRouter()
+	for _, tr := range testRoutes {
+		r.addRoute(tr.method, tr.path, mockHandler)
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			getNode, found := r.findRoute(tc.method, tc.path)
+			assert.Equal(t, tc.found, found)
+			if !found {
+				return
+			}
+			err := tc.wantNode.equal(getNode, "")
+			assert.True(t, err == nil, err)
+		})
+	}
+}

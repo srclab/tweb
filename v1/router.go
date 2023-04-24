@@ -17,6 +17,9 @@ func newRouter() router {
 	}
 }
 
+// addRoute 注册路由
+// method 是 HTTP 方法
+// path 必须以 / 开始并且结尾不能有 /，中间也不允许有连续的 /
 func (r *router) addRoute(method string, path string, handleFunc HandleFunc) {
 	if path == "" {
 		panic("web: 路由是空字符串")
@@ -62,8 +65,26 @@ func (r *router) addRoute(method string, path string, handleFunc HandleFunc) {
 	root.handler = handleFunc
 }
 
+// findRoute 查找对应的节点
+// 注意，返回的 node 内部 HandleFunc 不为 nil 才算是注册了路由
 func (r *router) findRoute(method string, path string) (*node, bool) {
-	return nil, false
+	root, ok := r.trees[method]
+	if !ok {
+		return nil, false
+	}
+
+	if path == "/" {
+		return root, true
+	}
+
+	segs := strings.Split(strings.Trim(path, "/"), "/")
+	for _, seg := range segs {
+		root, ok = root.childGet(seg)
+		if !ok {
+			return nil, false
+		}
+	}
+	return root, true
 }
 
 type node struct {
@@ -86,4 +107,12 @@ func (n *node) childGetOrCreate(seg string) *node {
 		n.children[seg] = child
 	}
 	return child
+}
+
+func (n *node) childGet(seg string) (*node, bool) {
+	if n.children == nil {
+		return nil, false
+	}
+	child, ok := n.children[seg]
+	return child, ok
 }
