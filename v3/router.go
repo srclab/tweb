@@ -91,11 +91,18 @@ type node struct {
 	path string
 	// map[子 path]子节点
 	children map[string]*node
+	// 通配符匹配
+	starChild *node
 	// handler 命中路由之后执行的逻辑
 	handler HandleFunc
 }
 
 func (n *node) childGetOrCreate(seg string) *node {
+	if seg == "*" {
+		n.starChild = &node{path: seg}
+		return n.starChild
+	}
+
 	if n.children == nil {
 		n.children = make(map[string]*node)
 	}

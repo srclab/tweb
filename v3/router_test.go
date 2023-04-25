@@ -39,6 +39,31 @@ func Test_router_addRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/login",
 		},
+		// 通配符测试用例
+		{
+			method: http.MethodGet,
+			path:   "/order/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/order/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/abc",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/abc/*",
+		},
 	}
 
 	var mockHandler HandleFunc = func(ctx *Context) {}
@@ -69,6 +94,10 @@ func Test_router_addRoute(t *testing.T) {
 								path:    "detail",
 								handler: mockHandler,
 							},
+						},
+						starChild: &node{
+							path:    "*",
+							handler: mockHandler,
 						},
 						handler: nil,
 					},
@@ -156,6 +185,12 @@ func (want *node) equal(get *node, id string) error {
 	id = filepath.Join(id, path)
 	if want == nil || get == nil {
 		return fmt.Errorf("node(id=%q) is nil", id)
+	}
+
+	if want.starChild != nil {
+		if err := want.starChild.equal(get.starChild, id); err != nil {
+			return err
+		}
 	}
 
 	if want.path != get.path {
