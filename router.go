@@ -101,11 +101,17 @@ type node struct {
 
 func (n *node) childGetOrCreate(seg string) *node {
 	if seg[0] == ':' {
+		if n.starChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有路径参数路由。不允许同时注册通配符路由和参数路由 [%s]", seg))
+		}
 		n.paramChild = &node{path: seg}
 		return n.paramChild
 	}
 
 	if seg == "*" {
+		if n.paramChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有路径参数路由。不允许同时注册通配符路由和参数路由 [%s]", seg))
+		}
 		n.starChild = &node{path: seg}
 		return n.starChild
 	}

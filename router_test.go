@@ -174,6 +174,18 @@ func Test_router_addRoute(t *testing.T) {
 	assert.PanicsWithValue(t, "web: 非法路由。不允许使用 //a/b, /a//b 之类的路由, [//a/b]", func() {
 		r.addRoute(http.MethodGet, "//a/b", mockHandler)
 	})
+
+	r = newRouter()
+	r.addRoute(http.MethodGet, "/a/*", mockHandler)
+	assert.Panicsf(t, func() {
+		r.addRoute(http.MethodGet, "/a/:id", mockHandler)
+	}, "web: 不允许同时注册路径参数和通配符匹配，已有通配符匹配")
+
+	r = newRouter()
+	r.addRoute(http.MethodGet, "/a/:id", mockHandler)
+	assert.Panicsf(t, func() {
+		r.addRoute(http.MethodGet, "/a/*", mockHandler)
+	}, "web: 不允许同时注册路径参数和通配符匹配，已有路径参数")
 }
 
 func (want router) equal(get router) error {
