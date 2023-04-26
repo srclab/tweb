@@ -116,10 +116,14 @@ func (n *node) childGetOrCreate(seg string) *node {
 	return child
 }
 
+// childGet 优先考虑静态匹配，匹配不上，再考虑通配符匹配
 func (n *node) childGet(seg string) (*node, bool) {
 	if n.children == nil {
-		return nil, false
+		return n.starChild, n.starChild != nil
 	}
 	child, ok := n.children[seg]
+	if !ok {
+		return n.starChild, n.starChild != nil
+	}
 	return child, ok
 }

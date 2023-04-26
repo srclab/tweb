@@ -234,6 +234,10 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/order/create",
 		},
+		{
+			method: http.MethodPost,
+			path:   "/order/*",
+		},
 	}
 
 	mockHandler := func(ctx *Context) {}
@@ -296,12 +300,23 @@ func Test_router_findRoute(t *testing.T) {
 			},
 		},
 		{
+			// 完全命中
 			name:   "two layer",
 			method: http.MethodPost,
 			path:   "/order/create",
 			found:  true,
 			wantNode: &node{
 				path:    "create",
+				handler: mockHandler,
+			},
+		},
+		{
+			name:   "order star",
+			method: http.MethodPost,
+			path:   "/order/abc",
+			found:  true,
+			wantNode: &node{
+				path:    "*",
 				handler: mockHandler,
 			},
 		},
