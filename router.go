@@ -93,11 +93,18 @@ type node struct {
 	children map[string]*node
 	// 通配符匹配
 	starChild *node
+	// 参数路径
+	paramChild *node
 	// handler 命中路由之后执行的逻辑
 	handler HandleFunc
 }
 
 func (n *node) childGetOrCreate(seg string) *node {
+	if seg[0] == ':' {
+		n.paramChild = &node{path: seg}
+		return n.paramChild
+	}
+
 	if seg == "*" {
 		n.starChild = &node{path: seg}
 		return n.starChild
@@ -119,10 +126,16 @@ func (n *node) childGetOrCreate(seg string) *node {
 // childGet 优先考虑静态匹配，匹配不上，再考虑通配符匹配
 func (n *node) childGet(seg string) (*node, bool) {
 	if n.children == nil {
+		if n.paramChild != nil {
+			return n.paramChild, true
+		}
 		return n.starChild, n.starChild != nil
 	}
 	child, ok := n.children[seg]
 	if !ok {
+		if n.paramChild != nil {
+			return n.paramChild, true
+		}
 		return n.starChild, n.starChild != nil
 	}
 	return child, ok

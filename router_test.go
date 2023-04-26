@@ -64,6 +64,11 @@ func Test_router_addRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/*/abc/*",
 		},
+		// 参数路径
+		{
+			method: http.MethodGet,
+			path:   "/order/detail/:id",
+		},
 	}
 
 	var mockHandler HandleFunc = func(ctx *Context) {}
@@ -93,6 +98,10 @@ func Test_router_addRoute(t *testing.T) {
 							"detail": {
 								path:    "detail",
 								handler: mockHandler,
+								paramChild: &node{
+									path:    ":id",
+									handler: mockHandler,
+								},
 							},
 						},
 						starChild: &node{
@@ -193,6 +202,12 @@ func (want *node) equal(get *node, id string) error {
 		}
 	}
 
+	if want.paramChild != nil {
+		if err := want.paramChild.equal(get.paramChild, id); err != nil {
+			return err
+		}
+	}
+
 	if want.path != get.path {
 		return fmt.Errorf("node(id=%q) path want: %q, get: %q", id, want.path, get.path)
 	}
@@ -237,6 +252,10 @@ func Test_router_findRoute(t *testing.T) {
 		{
 			method: http.MethodPost,
 			path:   "/order/*",
+		},
+		{
+			method: http.MethodPost,
+			path:   "/order/create/:id",
 		},
 	}
 
@@ -295,6 +314,10 @@ func Test_router_findRoute(t *testing.T) {
 					"create": {
 						path:    "create",
 						handler: mockHandler,
+						paramChild: &node{
+							path:    ":id",
+							handler: mockHandler,
+						},
 					},
 				},
 			},
