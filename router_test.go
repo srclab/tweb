@@ -274,11 +274,11 @@ func Test_router_findRoute(t *testing.T) {
 	mockHandler := func(ctx *Context) {}
 
 	testCases := []struct {
-		name     string
-		method   string
-		path     string
-		found    bool
-		wantNode *node
+		name   string
+		method string
+		path   string
+		found  bool
+		info   *matchInfo
 	}{
 		{
 			name:   "method not found",
@@ -294,15 +294,17 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/",
 			found:  true,
-			wantNode: &node{
-				path: "/",
-				children: map[string]*node{
-					"user": {
-						path:    "user",
-						handler: mockHandler,
+			info: &matchInfo{
+				n: &node{
+					path: "/",
+					children: map[string]*node{
+						"user": {
+							path:    "user",
+							handler: mockHandler,
+						},
 					},
+					handler: mockHandler,
 				},
-				handler: mockHandler,
 			},
 		},
 		{
@@ -310,9 +312,11 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/user",
 			found:  true,
-			wantNode: &node{
-				path:    "user",
-				handler: mockHandler,
+			info: &matchInfo{
+				n: &node{
+					path:    "user",
+					handler: mockHandler,
+				},
 			},
 		},
 		{
@@ -320,15 +324,17 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/order",
 			found:  true,
-			wantNode: &node{
-				path: "order",
-				children: map[string]*node{
-					"create": {
-						path:    "create",
-						handler: mockHandler,
-						paramChild: &node{
-							path:    ":id",
+			info: &matchInfo{
+				n: &node{
+					path: "order",
+					children: map[string]*node{
+						"create": {
+							path:    "create",
 							handler: mockHandler,
+							paramChild: &node{
+								path:    ":id",
+								handler: mockHandler,
+							},
 						},
 					},
 				},
@@ -340,9 +346,11 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/order/create",
 			found:  true,
-			wantNode: &node{
-				path:    "create",
-				handler: mockHandler,
+			info: &matchInfo{
+				n: &node{
+					path:    "create",
+					handler: mockHandler,
+				},
 			},
 		},
 		{
@@ -350,9 +358,27 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/order/abc",
 			found:  true,
-			wantNode: &node{
-				path:    "*",
-				handler: mockHandler,
+			info: &matchInfo{
+				n: &node{
+					path:    "*",
+					handler: mockHandler,
+				},
+			},
+		},
+		{
+			// id 路径参数匹配
+			name:   "create id",
+			method: http.MethodPost,
+			path:   "/order/create/123",
+			found:  true,
+			info: &matchInfo{
+				n: &node{
+					path:    ":id",
+					handler: mockHandler,
+				},
+				pathParams: map[string]string{
+					"id": "123",
+				},
 			},
 		},
 	}
@@ -364,12 +390,13 @@ func Test_router_findRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			getNode, found := r.findRoute(tc.method, tc.path)
+			getInfo, found := r.findRoute(tc.method, tc.path)
 			assert.Equal(t, tc.found, found)
 			if !found {
 				return
 			}
-			err := tc.wantNode.equal(getNode, "")
+			assert.Equal(t, tc.info.pathParams, getInfo.pathParams)
+			err := tc.info.n.equal(getInfo.n, "")
 			assert.True(t, err == nil, err)
 		})
 	}

@@ -40,11 +40,12 @@ func (s *HTTPServer) Start(addr string) error {
 }
 
 func (s *HTTPServer) serve(ctx *Context) {
-	n, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
-	if !ok || n.handler == nil {
+	info, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !ok || info.n.handler == nil {
 		ctx.Resp.WriteHeader(404)
 		ctx.Resp.Write([]byte("Not Found"))
 		return
 	}
-	n.handler(ctx)
+	ctx.PathParams = info.pathParams
+	info.n.handler(ctx)
 }
